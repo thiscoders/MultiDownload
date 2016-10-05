@@ -8,7 +8,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 /**
- * 下载器
+ * 下载器的类
  * Created by ye on 10/5/16.
  */
 public class Downloader {
@@ -178,9 +178,6 @@ public class Downloader {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
         }
     }
-
-
 }
