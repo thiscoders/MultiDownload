@@ -11,7 +11,7 @@ import java.net.URL;
  */
 public class DutilsTest {
     private String urls="http://127.0.0.1:8080/share/windowsdo/chrome.exe";
-
+    private String downPath="/home/ye/Downloads/kaifa";
     @Test
     public void test01() throws MalformedURLException {
         URL url=new URL(urls);
@@ -21,7 +21,7 @@ public class DutilsTest {
 
     @Test
     public void test02(){
-        System.out.println( DUtils.getFileTitle(urls));
+        System.out.println( DUtils.getFileTitleAndPath(downPath,urls));
     }
 
 

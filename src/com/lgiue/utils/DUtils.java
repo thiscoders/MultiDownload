@@ -7,13 +7,20 @@ package com.lgiue.utils;
 public class DUtils {
 
     /**
-     * 根据url获取下载的文件名
-     * @param urls url路径
-     * @return  文件名
+     * 获取下载文件的路径以及文件名称
+     * @param path 路径（缓存或者下载路径）
+     * @param urls url地址
+     * @return 完整的本地保存路径
      */
-    public static String getFileTitle(String urls){
-        int index=urls.lastIndexOf("/");
-        return new String(urls.substring(index+1));
+    public static String getFileTitleAndPath(String path,String urls){
+        int pLen=path.length();
+        int pIndex=path.lastIndexOf("/");
+        if(pIndex<pLen-1){
+            path+="/";
+        }
+
+        int uIndex=urls.lastIndexOf("/");
+        return path+new String(urls.substring(uIndex+1));
     }
 
 

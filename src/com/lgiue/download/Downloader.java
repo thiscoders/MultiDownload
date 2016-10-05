@@ -2,9 +2,12 @@ package com.lgiue.download;
 
 import com.lgiue.utils.DUtils;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 
 /**
@@ -23,11 +26,13 @@ public class Downloader {
     //当前为下载正在运行的线程数
     private int runningThread;
 
+    private String destFilePath;
+    private String destTempPath;
     /**
      *
-     * @param urls  资源的URL
-     * @param tempPath 缓存路径
-     * @param downPath 下载路径
+     * @param urls  下载资源的url
+     * @param tempPath 缓存文件保存路径
+     * @param downPath 文件下载位置
      * @param threadCount 下载开启的线程数
      */
     public Downloader(String urls,String tempPath,String downPath,int threadCount){
@@ -38,10 +43,12 @@ public class Downloader {
         this.threadCount=threadCount;
         //使当前运行线程等于总线程数
         this.runningThread=threadCount;
+        this.destFilePath=DUtils.getFileTitleAndPath(this.downPath,this.urls);
+        this.destTempPath=DUtils.getFileTitleAndPath(this.tempPath,this.urls);
     }
 
     /**
-     * 下载
+     * 下载方法
      */
     public void download(){
         try {
@@ -58,8 +65,13 @@ public class Downloader {
             }
             int len=connection.getContentLength();
 
+            File dir=new File(this.downPath);
+            if(!dir.exists()){
+                dir.mkdirs();
+            }
+
             //在本地创建下载文件的镜像
-            RandomAccessFile file=new RandomAccessFile(DUtils.getFileTitle(this.urls),"rw");
+            RandomAccessFile file=new RandomAccessFile(this.destFilePath,"rw");
             file.setLength(len);
 
             //计算每一个线程的下载大小，以及开始下载位置，结束位置
@@ -73,7 +85,7 @@ public class Downloader {
                     end=len;
                 }
                 //开启下载线程
-                System.out.println(start+"..."+end+"..."+len);
+                new downThread(i, start, end).start();
             }
 
 
@@ -81,5 +93,52 @@ public class Downloader {
             e.printStackTrace();
         }
     }
+
+    private class downThread extends Thread{
+        private int threadID;
+        private int istart;
+        private int iend;
+
+        public downThread(int threadID,int istart,int iend){
+            this.threadID=threadID;
+            this.istart=istart;
+            this.iend=iend;
+        }
+
+        @Override
+        public void run() {
+            try {
+                URL url=new URL(Downloader.this.urls);
+                HttpURLConnection connection= (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setConnectTimeout(5000);
+                connection.addRequestProperty("Range","bytes="+this.istart+"-"+this.iend);
+
+                int resCode=connection.getResponseCode();
+                if(resCode!=206){
+                    System.out.println("分段请求资源失败，响应码："+resCode);
+                    return;
+                }
+
+                //获取inputstream
+                InputStream stream=connection.getInputStream();
+                RandomAccessFile part=new RandomAccessFile(Downloader.this.destFilePath,"rw");
+                part.seek(istart);
+
+                int len=-1;
+                byte[] buffer=new byte[1024*1024];
+                while ((len=stream.read(buffer))!=-1){
+                    part.write(buffer,0,len);
+                }
+
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
+    }
+
 
 }
