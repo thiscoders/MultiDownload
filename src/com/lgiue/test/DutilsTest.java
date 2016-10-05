@@ -12,6 +12,7 @@ import java.net.URL;
 public class DutilsTest {
     private String urls="http://127.0.0.1:8080/share/windowsdo/chrome.exe";
     private String downPath="/home/ye/Downloads/kaifa";
+    //测试url类
     @Test
     public void test01() throws MalformedURLException {
         URL url=new URL(urls);
