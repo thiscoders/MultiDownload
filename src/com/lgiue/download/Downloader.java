@@ -53,6 +53,7 @@ public class Downloader {
             connection.setRequestMethod("GET");
             connection.setConnectTimeout(5000);
 
+            //获取响应码
             int resCode=connection.getResponseCode();
             if(resCode!=200){
                 System.out.println("资源请求失败，响应码："+resCode);
@@ -60,6 +61,7 @@ public class Downloader {
             }
             int len=connection.getContentLength();
 
+            //创建下载目录
             File dir=new File(this.downPath);
             if(!dir.exists()){
                 boolean res=dir.mkdirs();
@@ -70,15 +72,17 @@ public class Downloader {
 
             //在本地创建下载文件的镜像
             RandomAccessFile file=new RandomAccessFile(this.destFilePath,"rw");
+            //设置文件大小
             file.setLength(len);
 
-            //计算每一个线程的下载大小，以及开始下载位置，结束位置
-            int blockSize=len/this.threadCount;
+            //计算每一个线程的开始下载位置，结束位置以及下载大小
             int start;
             int end;
+            int blockSize=len/this.threadCount;
             for(int i=0;i<this.threadCount;i++){
                 start=i*blockSize;
                 end=(i+1)*blockSize-1;
+                //如果是最后一个线程就让其下载到结尾部分
                 if(i==this.threadCount-1){
                     end=len;
                 }
@@ -86,18 +90,27 @@ public class Downloader {
                 new downThread(i, start, end).start();
             }
 
-
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    /**
+     * 下载线程
+     * 缓存文件的所用：用来记录每次中断下载的时候线程的下载位置，下次下载开始的时候直接从上次记录的断点处进行下载，缓存文件使用txt文件进行保存
+     */
     private class downThread extends Thread{
         private int threadID;
         private int istart;
         private int iend;
         private String destTempPath;
 
+        /**
+         *
+         * @param threadID 下载线程的编号
+         * @param istart 下载开始位置
+         * @param iend 下载结束位置
+         */
         private downThread(int threadID,int istart,int iend){
             this.threadID=threadID;
             this.istart=istart;
@@ -108,11 +121,13 @@ public class Downloader {
         @Override
         public void run() {
             try {
+                //组拼url平设置条件
                 URL url=new URL(Downloader.this.urls);
                 HttpURLConnection connection= (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
                 connection.setConnectTimeout(5000);
 
+                //读取缓存文件，如果文件有内容就读取文件内容并将其设置为线程开始下载位置
                 File item=new File(this.destTempPath);
                 if(item.exists()&&item.length()!=0){
                     BufferedReader reader=new BufferedReader(new FileReader(item));
@@ -123,21 +138,24 @@ public class Downloader {
                     reader.close();
                 }
 
-
+                //设置下载范围
                 connection.addRequestProperty("Range","bytes="+this.istart+"-"+this.iend);
 
+                //获取响应码
                 int resCode=connection.getResponseCode();
                 if(resCode!=206){
                     System.out.println("分段请求资源失败，响应码："+resCode);
                     return;
                 }
 
-
                 //获取inputstream
                 InputStream stream=connection.getInputStream();
+                //打开上次下载的文件
                 RandomAccessFile part=new RandomAccessFile(Downloader.this.destFilePath,"rw");
+                //找到开始位置1
                 part.seek(istart);
 
+                //创建缓存目录
                 File tdir=new File(Downloader.this.tempPath);
                 if(!tdir.exists()){
                     boolean res=tdir.mkdirs();
@@ -145,20 +163,24 @@ public class Downloader {
                         System.out.println("缓存目录创建失败！");
                     }
                 }
-                int totle=0;
 
+                int totle=0; //记录本次写入文件的偏移量
+                //开始读取inputstream，并将其中的内容写到下载文件之中
                 int len;
                 byte[] buffer=new byte[1024*1024];
                 while ((len=stream.read(buffer))!=-1){
                     part.write(buffer,0,len);
+                    //修改本次写入文件的偏移量
                     totle+=len;
-
+                    //将游标记录到缓存文件之中
                     RandomAccessFile temp=new RandomAccessFile(this.destTempPath,"rwd");
+                    //每次读取完成之后修改记录下载位置的游标到新的位置
                     int last=this.istart+totle;
                     temp.write(String.valueOf(last).getBytes());
                     temp.close();
                 }
                 System.out.println("线程"+this.threadID+"下载完成！");
+                //所有线程下载完成只后，删除所有缓存文件
                 synchronized (this){
                     Downloader.this.runningThread--;
                     if(Downloader.this.runningThread==0){
@@ -167,8 +189,8 @@ public class Downloader {
                             File tfile=new File(tpath);
                             if(tfile.exists()){
                                 //删除缓存文件
-                                //tfile.delete();
                                 System.out.println("去掉注释，删除文件！");
+                                //tfile.delete();
                             }
                         }
                     }
