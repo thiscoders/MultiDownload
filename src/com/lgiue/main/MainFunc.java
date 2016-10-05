@@ -10,7 +10,7 @@ public class MainFunc {
     private static String urls="http://127.0.0.1:8080/share/windowsdo/chrome.exe";
     private static String tempPath="";
     private static String downPath="";
-    private static int threadCount=3;
+    private static int threadCount=5;
 
     public static void main(String[] args){
         Downloader downloader=new Downloader(urls,tempPath,downPath,threadCount);

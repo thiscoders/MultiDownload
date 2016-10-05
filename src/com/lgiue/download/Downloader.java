@@ -1,6 +1,9 @@
 package com.lgiue.download;
 
+import com.lgiue.utils.DUtils;
+
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
@@ -42,6 +45,7 @@ public class Downloader {
      */
     public void download(){
         try {
+            //组拼connection获取资源长度
             URL url=new URL(this.urls);
             HttpURLConnection connection= (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
@@ -53,7 +57,25 @@ public class Downloader {
                 return;
             }
             int len=connection.getContentLength();
-            System.out.println("文件长度如下："+len);
+
+            //在本地创建下载文件的镜像
+            RandomAccessFile file=new RandomAccessFile(DUtils.getFileTitle(this.urls),"rw");
+            file.setLength(len);
+
+            //计算每一个线程的下载大小，以及开始下载位置，结束位置
+            int blockSize=len/this.threadCount;
+            int start;
+            int end;
+            for(int i=0;i<this.threadCount;i++){
+                start=i*blockSize;
+                end=(i+1)*blockSize-1;
+                if(i==this.threadCount-1){
+                    end=len;
+                }
+                //开启下载线程
+                System.out.println(start+"..."+end+"..."+len);
+            }
+
 
         } catch (IOException e) {
             e.printStackTrace();
